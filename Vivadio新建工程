@@ -1,0 +1,6 @@
+# Verilog
+Note;Getting Started &amp;Verilog Language(Basics,Vectors)
+
+打开Vivadio 2018.3软件 
+Quick start:选择create project ——> Next ——> 输入工程名称/选择工程位置 ——> Next ——> RTL project ——> Next ——> search:(搜索芯片型号) ——> Finish  Sources,右击Design sources,
+点击Add Sources    Add or create design sources,Next   create file输入   file name:  ,ok,finish
