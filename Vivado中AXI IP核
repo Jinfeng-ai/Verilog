@@ -23,3 +23,19 @@ Read Address通道、Read Data通道。
 帧：AXI4-Stream中最高级别的字节分组。一帧包含整数个数据包。帧可以是非常多的字节，例如整个视频帧缓冲区。
 数据流：数据从一个源地址到目的地址的传输。可以是一系列单独的字节传输；也可以是将一系列字节传输分组在一起。
 TVALID和TREADY握手确定何时通过接口传递信息。双向流控制机制使主机和从机都可以控制通过接口传输数据和控制信息的速率。
+
+
+axi总线分为五个通道：
+
+读地址通道，包含ARVALID, ARADDR, ARREADY信号；
+写地址通道，包含AWVALID，AWADDR, AWREADY信号；
+读数据通道，包含RVALID, RDATA, RREADY, RRESP信号；
+写数据通道，包含WVALID, WDATA，WSTRB, WREADY信号；
+写应答通道，包含BVALID, BRESP, BREADY信号；
+系统通道，包含：ACLK，ARESETN信号；
+
+其中ACLK为axi总线时钟，ARESETN是axi总线复位信号，低电平有效；读写数据与读写地址类信号宽度都为32bit；
+READY与VALID是对应的通道握手信号；WSTRB信号为1的bit对应WDATA有效数据字节，WSTRB宽度是32bit/8=4bit；
+BRESP与RRESP分别为写回应信号，读回应信号，宽度都为2bit，‘h0代表成功，其他为错误。
+
+
