@@ -1,0 +1,121 @@
+# Verilog
+Note;Getting Started &amp;Verilog Language(Basics,Vectors)
+
+
+FIFO写数据，写到寄存器中，通过DSP读取数据。
+
+
+`timescale 1ns / 1ps
+
+module project_fifo(
+    input                  sys_clk,
+    input                  Dsp_emif_eclk,
+    input                  rst_n,
+    inout      [15:0]      Dsp_emif_ed,
+    input                  Dsp_emif_ce0,
+    input                  fpga2daprst1,
+    input                  fpga2daprst2,
+//    input                  Dsp_emif_ce2,
+    input                  Dsp_emif_are,
+    input                  Dsp_emif_aoe,
+    input      [10:0]      Dsp_emif_ea
+    );
+ 
+    wire                   fifo_empty;
+    reg        [15:0]      fifo_rd_data;
+    reg        [15:0]      fifo_wr_data;
+    reg        [31:0]      count;
+    wire                   fifo_full; 
+    reg                    fifo_wr_en;
+    wire       [15:0]      dout;  
+    wire                   fifo_rd_en;
+    reg                    rst_n_r;
+  
+    always @ ( posedge sys_clk )begin     //计数500次，当count <= 500时，fifo_wr_en <= 1;否则fifo_wr_en <= 0;
+        if ( count <= 500 )               //总计数1000，500次就可以看到计数的过程。  
+            fifo_wr_en <= 1;
+        else
+            fifo_wr_en <= 0;
+    end
+ 
+    always @ ( posedge sys_clk or negedge rst_n_r)begin
+            if(!rst_n_r) begin
+                count <= 0;                 
+            end
+            else if (count <=1000) begin    //总的计数1000次。
+                count <= count + 1;
+            end
+     end   
+      
+    /*always @ ( posedge sys_clk )begin
+            if((!rst_n)==1'b1)               //复位与输入时钟同步；这是打一拍；
+               rst_n_r<=0;                   //打多拍时，需要多定义几个变量，每个变量串联，if（rst_n_r1 = rst_n_r2 = rst_n_r3）
+            else   rst_n_r<=1;          
+     end */
+  
+    // assign @ (*)begin
+    //        fifo_wr_en = !fifo_full;    
+    // end
+    //assign fifo_wr_en = !fifo_full; 
+    //always @ ( posedge sys_clk or negedge rst_n )begin
+    //         if(!rst_n)                                  
+    //             count <= 0;
+    //         else
+    //             count <= count + 1;        
+    //  end   
+ 
+    assign fifo_rd_en  = ( Dsp_emif_are == 0 ) && ( Dsp_emif_ea == 4'b0 ) && ( Dsp_emif_ce0==0 ) ;
+    assign Dsp_emif_ed = ( Dsp_emif_aoe == 0 ) && ( Dsp_emif_ea == 8'b0 ) && ( Dsp_emif_ce0==0 ) ? dout : 32'bz;
+
+    //按键消抖。
+    reg [15:0]rst_cnt;
+    always @ ( posedge sys_clk)begin
+        rst_cnt <= {rst_cnt[14:0],rst_n};    //取[15:0]前15位，每次都是一个移位。
+    end
+    
+    always @ ( posedge sys_clk)begin
+        if(rst_cnt==16'hff)
+            rst_n_r <= 1;
+        else if(rst_cnt==16'h00)rst_n_r <= 0;
+    end
+   
+    reg rst;
+    always @ ( posedge Dsp_emif_eclk)begin
+        rst <= !rst_n_r;
+    end
+ 
+    assign fpga2daprst1 = 1;
+    assign fpga2daprst2 = 1;
+
+ fifo_generator_0 your_instance_name (
+   .rst(rst),                       // input wire rst
+   .wr_clk(sys_clk),                // input wire wr_clk
+   .rd_clk(Dsp_emif_eclk),          // input wire rd_clk
+   .din(count),                     // input wire [15 : 0] din
+   .wr_en(fifo_wr_en),              // input wire wr_en
+   .rd_en(fifo_rd_en),              // input wire rd_en
+   .dout(dout),                     // output wire [15 : 0] dout
+   .full(fifo_full),                // output wire full
+   .empty(fifo_empty)               // output wire empty 
+ );
+
+ila_0 ila_0_u (
+	.clk(Dsp_emif_eclk),                  // input wire clk
+
+	.probe0(dout),                  // input wire [14:0]  probe0  
+	.probe1(count),                 // input wire [14:0]  probe1 
+	.probe2(Dsp_emif_aoe),                 // input wire [0:0]  probe2 
+	.probe3(Dsp_emif_eclk),         // input wire [0:0]  probe3 
+	.probe4(fifo_wr_en),            // input wire [0:0]  probe4 
+	.probe5(fifo_rd_en),            // input wire [0:0]  probe5 
+	.probe6(fifo_full),             // input wire [0:0]  probe6 
+	.probe7(fifo_empty),            // input wire [0:0]  probe7 
+    .probe8(rst_n_r)                // input wire [0:0]  probe8
+);
+endmodule
+
+
+//遇到一个问题：
+//数据输出使能Dsp_emif_aoe比FIFO使能fifo_rd_en晚一个时钟。Dsp_emif_aoe至少与fifo_rd_en是同步的，且要比fifo_rd_en更宽。
+//使能信号有效时，数据输出是有延时的。
+//Dsp_emif_ed这句话中的使能条件必须是Dsp_emif_aoe，保证数据有效输出。如果使用fifo_rd_en，fifo输出的数据不一定会完全输出。
