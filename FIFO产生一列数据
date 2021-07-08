@@ -1,0 +1,6 @@
+# Verilog
+Note;Getting Started &amp;Verilog Language(Basics,Vectors)
+
+自己写一个数据源，产生一个时钟/使用DSP_EMIF_CLK;
+产生16位的数据，从端口输出。
+输出一个valid，在valid有效时，输出数据，20微秒输出1024个数据。
